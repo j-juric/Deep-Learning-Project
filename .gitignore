@@ -1,0 +1,10 @@
+cartoon_dataset
+cartoon_dataset
+celebrity_dataset
+celebrity_dataset_extracted
+data.npy
+__pycache__
+model
+training_progression
+playground.py
+train_model.py
