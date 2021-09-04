@@ -42,9 +42,14 @@ class DatasetPreprocessor():
 
         xgan_dataset = None
 
-        for i in tqdm(range(64)): #range(len(self.domain_A_dataset)):
+        flag = True
+
+        for i in tqdm(range(256)): #range(len(self.domain_A_dataset)):
             data_a = iter_a.next()
             data_b = iter_b.next()
+            if flag:
+                print(data_a.shape, data_b.shape, sep ='\t')
+                flag=False
             data = np.array(np.concatenate((data_a, data_b)))
             if xgan_dataset is None:
                 xgan_dataset = data

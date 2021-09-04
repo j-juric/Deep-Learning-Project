@@ -11,7 +11,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 tf.get_logger().setLevel('ERROR')
 
-dataset = DatasetPreprocessor(CELEBRITY_DATASET, CARTOON_DATASET).xgan_merge() if True else np.load('./data.npy')
+dataset = DatasetPreprocessor(CELEBRITY_DATASET, CARTOON_DATASET).xgan_merge() if False else np.load('./data.npy')
 xgan = XGAN(batch_size = BATCH_SIZE)
 
 import random
@@ -32,24 +32,24 @@ os.mkdir(f'./training_progression/gifs/{model_name}')
 class GifProducer(tf.keras.callbacks.Callback):
     
     def on_epoch_end(self, epoch, logs=None):
-        images = dataset[16:32]
+        images = dataset[0:16]
         result = xgan.generator(images, Style.A, training=False)
         images = np.array(images)
         # input_domain = result['img_A']
-        target_domain = np.array(result['img_B'])
+        target_domain = np.array(result['img_A'])
 
-        fig = plt.figure(figsize=(6,12))
+        fig = plt.figure(figsize=(6,10))
 
         for i in range(8):
             fig.add_subplot(8,4,i+1)
-            img = (images[i]+0.5)* 255.0
+            img = (images[i]+1.0)* 127.5
             img = img.astype(np.uint8)
             plt.imshow(img)
             plt.axis('off')
 
         for i in range(8,16):
             fig.add_subplot(8,4,i+1)
-            img = (target_domain[i-8]+0.5)* 255.0
+            img = (target_domain[i-8]+1.0)* 127.5
             img = img.astype(np.uint8)
             plt.imshow(img)
             plt.axis('off')
@@ -71,7 +71,7 @@ def main():
         loss_function= tf.keras.losses.BinaryCrossentropy(from_logits= True)
     )
 
-    xgan.fit(dataset, epochs=5, callbacks=[GifProducer(),model_cp])
+    xgan.fit(dataset, epochs=100, callbacks=[GifProducer(),model_cp])
 
 if __name__ == '__main__':
     main()

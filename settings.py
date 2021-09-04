@@ -9,7 +9,7 @@ CELEBRITY_DATASET = './celebrity_dataset/'
 #************MODEL PARAMETERS***************
 #*******************************************
 
-BATCH_SIZE = 4
+BATCH_SIZE = 32
 IMAGE_SIZE = (64,64)
 EPOCHS = 16
 TRAIN_RATIO = 0.8
