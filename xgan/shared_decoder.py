@@ -9,14 +9,14 @@ class SharedDecoder(layers.Layer):
         self.reshape = layers.Reshape((2, 2, 1024))
         
         self.deconv1 = layers.Conv2DTranspose(512, (4,4), strides=(2,2), padding='same', activation='relu')
-        #self.bnorm1 = layers.BatchNormalization()
+        self.bnorm1 = layers.BatchNormalization()
 
         self.deconv2 = layers.Conv2DTranspose(256, (4,4), strides=(2,2), padding='same', activation='relu')
-        #self.bnorm2 = layers.BatchNormalization()
+        self.bnorm2 = layers.BatchNormalization()
 
     def call(self, shared_embedding):
 
         x = self.reshape(self.fc(shared_embedding))
-        x = self.deconv1(x)
-        x = self.deconv2(x)
+        x = self.bnorm1(self.deconv1(x))
+        x = self.bnorm2(self.deconv2(x))
         return x

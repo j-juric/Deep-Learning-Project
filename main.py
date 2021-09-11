@@ -32,23 +32,26 @@ os.mkdir(f'./training_progression/gifs/{model_name}')
 class GifProducer(tf.keras.callbacks.Callback):
     
     def on_epoch_end(self, epoch, logs=None):
-        images = dataset[0:16]
+        images = dataset[0,0:16]
+
         result = xgan.generator(images, Style.A, training=False)
         images = np.array(images)
         # input_domain = result['img_A']
-        target_domain = np.array(result['img_A'])
+        target_domain = np.array(result['img_B'])
 
-        fig = plt.figure(figsize=(6,10))
+        
+
+        fig = plt.figure(figsize=(32,16))
 
         for i in range(8):
-            fig.add_subplot(8,4,i+1)
+            fig.add_subplot(8,8,i+1)
             img = (images[i]+1.0)* 127.5
             img = img.astype(np.uint8)
             plt.imshow(img)
             plt.axis('off')
 
         for i in range(8,16):
-            fig.add_subplot(8,4,i+1)
+            fig.add_subplot(8,8,i+1)
             img = (target_domain[i-8]+1.0)* 127.5
             img = img.astype(np.uint8)
             plt.imshow(img)
@@ -65,9 +68,9 @@ model_cp = tf.keras.callbacks.ModelCheckpoint(f'./model/{model_name}.h5', verbos
 def main():
     
     xgan.compile(
-        generator_optimizer=tf.keras.optimizers.Adam(learning_rate=LEARN_RATE, beta_1=BETA[0], beta_2=BETA[1]),
-        discriminator_optimizer=tf.keras.optimizers.Adam(learning_rate=LEARN_RATE, beta_1=BETA[0], beta_2=BETA[1]),
-        cdann_optimizer=tf.keras.optimizers.Adam(learning_rate=LEARN_RATE, beta_1=BETA[0], beta_2=BETA[1]),
+        generator_optimizer=tf.keras.optimizers.Adam(learning_rate=1e-3, beta_1=BETA[0], beta_2=BETA[1]),
+        discriminator_optimizer=tf.keras.optimizers.Adam(learning_rate=1e-3, beta_1=BETA[0], beta_2=BETA[1]),
+        cdann_optimizer=tf.keras.optimizers.Adam(learning_rate=2e-4, beta_1=BETA[0], beta_2=BETA[1]),
         loss_function= tf.keras.losses.BinaryCrossentropy(from_logits= True)
     )
 

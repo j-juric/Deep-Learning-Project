@@ -44,16 +44,19 @@ class XGAN(tf.keras.Model):
     #******LOSS FUNCTION CALCULATIONS*******
     #***************************************
 
-    def semantic_consistency_loss(self, output_A):
+    def semantic_consistency_loss(self, output_A, output_B):
 
         x = self.generator( output_A['img_B'], style=Style.B)
-        result = tf.reduce_mean(tf.abs(x['shared_embedding'] - output_A['shared_embedding']))
-        return result
+        x = tf.reduce_mean(tf.abs(output_A['shared_embedding'] - x['shared_embedding']))
+
+        y = self.generator( output_B['img_A'], style= Style.A)
+        y = tf.reduce_mean(tf.abs(output_B['shared_embedding'] - y['shared_embedding']))
+        return x+y
 
     def reconstruction_loss(self, input_A, input_B, output_A_to_A, output_B_to_B): #auto encoder loss
 
-        rec_loss_A = tf.losses.mean_squared_error(input_A, output_A_to_A)
-        rec_loss_B = tf.losses.mean_squared_error(input_B, output_B_to_B)
+        rec_loss_A = tf.reduce_mean(tf.losses.mean_squared_error(input_A, output_A_to_A))
+        rec_loss_B = tf.reduce_mean(tf.losses.mean_squared_error(input_B, output_B_to_B))
         return rec_loss_A + rec_loss_B
 
     def domain_adversarial_loss(self, output_A, output_B):
@@ -66,37 +69,38 @@ class XGAN(tf.keras.Model):
 
         return loss_A + loss_B
 
+
     def objective_loss(self, input_A, input_B):
 
-        x_A = self.discriminator(self.generator(input_A, Style.A)['img_B'])
-        x_B = self.discriminator(input_B)
+        fake_output = self.discriminator(self.generator(input_A, Style.A)['img_B'])
+        real_output = self.discriminator(input_B)
 
-        x_A = tf.math.log(tf.ones_like(x_A) - x_A)
-        x_B = tf.math.log(x_B)
-        x = tf.reduce_mean(x_A + x_B)
+        real_loss = self.loss(tf.ones_like(real_output), real_output)
+        fake_loss = self.loss(tf.zeros_like(fake_output), fake_output)
 
-        return x
+        return real_loss + fake_loss
+
 
     def generator_loss(self, input_A, input_B, output_A, output_B):
 
         #***CALCULATE LOSS FUNCTIONS***
-        #L_sem = self.semantic_consistency_loss(output_A)
+        L_sem = self.semantic_consistency_loss(output_A, output_B)
         L_rec = self.reconstruction_loss(input_A, input_B, output_A['img_A'], output_B['img_B'])
         L_dann = self.domain_adversarial_loss(output_A, output_B)
-        #L_gan = self.objective_loss(input_A, input_B) #if d_loss<1.0 else 0.0
+        L_gan = self.objective_loss(input_A, input_B) #if d_loss<1.0 else 0.0
         
         #********SAVE METRICS**********
-        #self.sem_con_loss_metric(L_sem)
+        self.sem_con_loss_metric(L_sem)
         self.rec_loss_metric(L_rec)
-        #self.dom_adv_loss_metric(L_dann)
-        # self.obj_loss_metric(L_gan)
+        self.dom_adv_loss_metric(L_dann)
+        self.obj_loss_metric(L_gan)
 
         #***FINAL LOSS CALCULATION*****
-        w_d, w_s, w_g = 1, 1, 1
+        w_d, w_s, w_g = 1, 0.5, 1
 
-        L_xgan = L_rec #+ (w_d * L_dann) + (w_s*L_sem) #+ (w_g*L_gan)
+        L_xgan = L_rec  + (w_s*L_sem) + (w_g*L_gan)
 
-        return L_xgan, L_dann
+        return L_xgan, (w_d * L_dann)
         
     def discriminator_loss(self, output_A_to_B, input_B):
 
@@ -121,8 +125,13 @@ class XGAN(tf.keras.Model):
     @tf.function
     def train_step(self,images):
 
-        domain_A_images = images[0:BATCH_SIZE//2]
-        domain_B_images = images[BATCH_SIZE//2:]
+        domain_A_images = images[:, 0:BATCH_SIZE//2]
+        domain_B_images = images[:, BATCH_SIZE//2:]
+
+        domain_A_images = domain_A_images[0]
+        domain_B_images = domain_B_images[0]
+
+
 
         with tf.GradientTape() as generator_tape, tf.GradientTape() as discriminator_tape, tf.GradientTape() as cdann_tape:
 
@@ -134,11 +143,11 @@ class XGAN(tf.keras.Model):
 
             g_gradient = generator_tape.gradient(g_loss, self.generator.trainable_variables)
             d_gradient = discriminator_tape.gradient(d_loss, self.discriminator.trainable_variables)
-            # cdann_gradient = cdann_tape.gradient(cdann_loss, self.cdann.trainable_variables)
+            cdann_gradient = cdann_tape.gradient(cdann_loss, self.cdann.trainable_variables)
 
             self.generator_optimizer.apply_gradients(zip(g_gradient, self.generator.trainable_variables))
             self.discriminator_optimizer.apply_gradients(zip(d_gradient, self.discriminator.trainable_variables))
-            #self.cdann_optimizer.apply_gradients(zip(cdann_gradient, self.cdann.trainable_variables))
+            self.cdann_optimizer.apply_gradients(zip(cdann_gradient, self.cdann.trainable_variables))
 
         with self.train_summary_writer.as_default():
             tf.summary.scalar('generator_loss', self.g_loss_metric.result(), step=self.batch_step)
@@ -146,7 +155,7 @@ class XGAN(tf.keras.Model):
             tf.summary.scalar('semantic_consistency_loss', self.sem_con_loss_metric.result(), step=self.batch_step)
             tf.summary.scalar('reconstruction_loss', self.rec_loss_metric.result(), step=self.batch_step)
             tf.summary.scalar('domain_adverserial_loss', self.dom_adv_loss_metric.result(), step=self.batch_step)
-            #tf.summary.scalar('objective_loss', self.obj_loss_metric.result(), step=self.batch_step)
+            tf.summary.scalar('objective_loss', self.obj_loss_metric.result(), step=self.batch_step)
         
         result = {
             "Generator loss": g_loss,
@@ -154,7 +163,7 @@ class XGAN(tf.keras.Model):
             "Semantic consistency loss": self.sem_con_loss_metric.result(),
             "Reconstruction loss": self.rec_loss_metric.result(),
             "Domain adverserial loss": self.dom_adv_loss_metric.result(),
-            # "Objective loss": self.obj_loss_metric.result(),
+            "Objective loss": self.obj_loss_metric.result(),
         }
 
         return result

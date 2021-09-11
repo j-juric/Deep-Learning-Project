@@ -16,12 +16,21 @@ def dir_path(path_str):
     else:
         raise NotADirectoryError(path_str)
 
+def center_crop(image, new_width, new_height):
+    width, height = image.size
+    left = (width - new_width)/2
+    top = (height - new_height)/2
+    right = (width + new_width)/2
+    bottom = (height + new_height)/2
+
+    return image.crop((left,top,right,bottom))
+
 def resize(src, dst, width, height):
-    flag = True
     for item in tqdm(os.listdir(src)):
         src_file_path = src +item
         if os.path.isfile(src_file_path):
             img = Image.open(src_file_path)
+            img = center_crop(img, 300, 300)
             img_resized = img.resize((width,height))
             file_name = os.path.basename(item)
             file_name = os.path.splitext(file_name)[0]
@@ -31,10 +40,10 @@ def resize(src, dst, width, height):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('src_dir', help = 'Path to source directory', type=dir_path)
-    parser.add_argument('dst_dir', help = 'Path to destination directory', type=dir_path)
-    parser.add_argument('width', help= 'Set resized picture width',type=int)
-    parser.add_argument('height', help = 'Set resized picture height',type=int)
+    parser.add_argument('--src_dir', help = 'Path to source directory', type=dir_path)
+    parser.add_argument('--dst_dir', help = 'Path to destination directory', type=dir_path)
+    parser.add_argument('--width', help= 'Set resized picture width',type=int)
+    parser.add_argument('--height', help = 'Set resized picture height',type=int)
 
     arguments = parser.parse_args()
 

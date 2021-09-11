@@ -6,19 +6,24 @@ class SharedEncoder(layers.Layer):
         super(SharedEncoder, self).__init__()
 
         self.conv3 = layers.Conv2D(128, (4,4), strides=(2,2), padding='same', activation='relu')
-        #self.bnorm3 = layers.BatchNormalization()
+        self.bnorm3 = layers.BatchNormalization()
 
         self.conv4 = layers.Conv2D(256, (4,4), strides=(2,2), padding='same', activation='relu')
-        #self.bnorm4 = layers.BatchNormalization()
+        self.bnorm4 = layers.BatchNormalization()
         
         self.flatten1 = layers.Flatten()
 
         self.fc1 = layers.Dense(1024,activation='relu')
+        self.bnorm5 = layers.BatchNormalization()
+        self.drop1 = layers.Dropout(0.3)
+
         self.fc2 = layers.Dense(1024,activation='relu')
+        self.bnorm6 = layers.BatchNormalization()
 
     def call(self, input): 
-        x = self.conv3(input)
-        x = self.conv4(x)
+        x = self.bnorm3(self.conv3(input))
+        x = self.bnorm4(self.conv4(x))
         x = self.flatten1(x)
-        x = self.fc2(self.fc1(x))
+        x = self.drop1(self.bnorm5(self.fc1(x)))
+        x = self.bnorm6(self.fc2(x))
         return x

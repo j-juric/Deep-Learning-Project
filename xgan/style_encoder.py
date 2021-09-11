@@ -6,11 +6,12 @@ class StyleEncoder(layers.Layer):
         super(StyleEncoder, self).__init__()
 
         self.conv1 = layers.Conv2D(32, (4,4), strides=(2,2), padding='same', activation='relu')
-
+        self.bnorm1 = layers.BatchNormalization()
 
         self.conv2 = layers.Conv2D(64, (4,4), strides=(2,2), padding='same', activation='relu')
+        self.bnorm2 = layers.BatchNormalization()
 
     def call(self, input):
-        x = self.conv1(input)
-        x = self.conv2(x)
+        x = self.bnorm1(self.conv1(input))
+        x = self.bnorm2(self.conv2(x))
         return x
