@@ -12,7 +12,7 @@ class StyleDecoder(layers.Layer):
         self.bnorm4 = layers.BatchNormalization()
         
         self.deconv5 = layers.Conv2DTranspose(3, (4,4), strides=(2,2), padding='same', activation='tanh')
-
+        
     def call(self, input):
         x = self.bnorm3(self.deconv3(input))
         x = self.bnorm4(self.deconv4(x))

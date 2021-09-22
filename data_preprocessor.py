@@ -44,7 +44,7 @@ class DatasetPreprocessor():
 
         print('Dataset length:' , len(self.domain_B_dataset), sep=' ')
 
-        for i in tqdm(range(256)): #range(len(self.domain_A_dataset)):
+        for _ in tqdm(range(len(self.domain_A_dataset))): #range(len(self.domain_A_dataset)):
             data_a = iter_a.next()
             data_b = iter_b.next()
             data = np.array([np.concatenate((data_a, data_b))])

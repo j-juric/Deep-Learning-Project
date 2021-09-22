@@ -15,7 +15,7 @@ class SharedEncoder(layers.Layer):
 
         self.fc1 = layers.Dense(1024,activation='relu')
         self.bnorm5 = layers.BatchNormalization()
-        self.drop1 = layers.Dropout(0.3)
+        self.drop1 = layers.Dropout(0.5)
 
         self.fc2 = layers.Dense(1024,activation='relu')
         self.bnorm6 = layers.BatchNormalization()
