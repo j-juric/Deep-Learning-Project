@@ -3,7 +3,7 @@ from tensorflow.keras import layers
 #from keras.engine import Layer
 from keras.engine.base_layer import Layer
 import keras.backend as K
-
+from keras.layers.advanced_activations import LeakyReLU
 # def reverse_gradient(X, hp_lambda):
 #     '''Flips the sign of the incoming gradient during training.'''
 #     try:
@@ -57,14 +57,14 @@ class Cdann(layers.Layer):
         #self.flip = GradientReversal(0.3)
 
         
-        self.d0 = layers.Dense(512, activation='relu')
-        self.d1 = layers.Dense(256,activation='relu')
+        self.d0 = layers.Dense(512, activation=LeakyReLU(0.3))
+        self.d1 = layers.Dense(256,activation=LeakyReLU(0.3))
         self.drop1 = layers.Dropout(0.4)
-        self.d2 = layers.Dense(128,activation='relu')
-        self.d3 = layers.Dense(64,activation='relu')
+        self.d2 = layers.Dense(128,activation=LeakyReLU(0.3))
+        self.d3 = layers.Dense(64,activation=LeakyReLU(0.3))
         self.drop3 = layers.Dropout(0.4)
-        self.d4 = layers.Dense(32,activation='relu')
-        self.d5 = layers.Dense(16,activation='relu')
+        self.d4 = layers.Dense(32,activation=LeakyReLU(0.3))
+        self.d5 = layers.Dense(16,activation=LeakyReLU(0.3))
         self.drop5 = layers.Dropout(0.4)
         self.d6 = layers.Dense(1,activation='sigmoid')
 

@@ -32,7 +32,7 @@ class DatasetPreprocessor():
         image = (image-127.5) / 127.5
         return image
 
-    def xgan_merge(self):
+    def prepare_dataset(self):
 
         if (len(self.domain_A_dataset) != len(self.domain_B_dataset)):
             raise "Datasets lengths not equal."

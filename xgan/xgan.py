@@ -55,7 +55,6 @@ class XGAN(tf.keras.Model):
         y = tf.reduce_mean(tf.abs(output_B['shared_embedding'] - y['shared_embedding']))
         return x+y
 
-    @tf.function
     def reconstruction_loss(self, input_A, input_B, output_A_to_A, output_B_to_B): #auto encoder loss
 
         rec_loss_A = tf.reduce_mean(tf.losses.mean_squared_error(input_A, output_A_to_A))
@@ -69,21 +68,21 @@ class XGAN(tf.keras.Model):
 
         r_val = tf.random.uniform(shape=[])
 
-        loss_A = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=cdann_B, labels=tf.ones_like(cdann_B))) #self.loss(tf.zeros_like(cdann_A), cdann_A)
-        loss_B = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=cdann_A, labels=tf.zeros_like(cdann_A))) #self.loss(tf.ones_like(cdann_B), cdann_B) #
+        loss_A = self.loss(tf.ones_like(cdann_A), cdann_A) #tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=cdann_B, labels=tf.ones_like(cdann_B)))
+        loss_B = self.loss(tf.zeros_like(cdann_B), cdann_B) # tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=cdann_A, labels=tf.zeros_like(cdann_A)))
 
         return r_val * loss_A + (1-r_val)* loss_B
 
 
-    def objective_loss(self, input_B):
+    def objective_loss(self, input_A, input_B):
 
-        #fake_output = self.discriminator(self.generator(input_A, Style.A)['img_B'])
-        real_output = self.discriminator(input_B)
+        fake_output = self.discriminator(self.generator(input_A, Style.A)['img_B'])
+        #real_output = self.discriminator(input_B)
 
-        real_loss = self.loss(tf.ones_like(real_output), real_output)
-        #fake_loss = self.loss(tf.zeros_like(fake_output), fake_output)
+        #real_loss = self.loss(tf.zeros_like(real_output), real_output)
+        fake_loss = self.loss(tf.ones_like(fake_output), fake_output)
 
-        return real_loss 
+        return fake_loss 
 
 
     def generator_loss(self, input_A, input_B, output_A, output_B):
@@ -92,7 +91,7 @@ class XGAN(tf.keras.Model):
         L_sem = self.semantic_consistency_loss(output_A, output_B)
         L_rec = self.reconstruction_loss(input_A, input_B, output_A['img_A'], output_B['img_B'])
         L_dann = self.domain_adversarial_loss(output_A, output_B)
-        L_gan = self.objective_loss(input_B) #if d_loss<1.0 else 0.0
+        L_gan = self.objective_loss(input_A, input_B)
         
         #********SAVE METRICS**********
         self.sem_con_loss_metric(L_sem)
@@ -101,7 +100,7 @@ class XGAN(tf.keras.Model):
         self.obj_loss_metric(L_gan)
 
         #***FINAL LOSS CALCULATION*****
-        w_d, w_s, w_g = 1.0, 0.5 , 1.0
+        w_d, w_s, w_g = 0.2, 0.2 , 0.2
 
         L_xgan = L_rec  + (w_s*L_sem) + (w_g*L_gan) + (w_d * L_dann)
 
@@ -152,16 +151,16 @@ class XGAN(tf.keras.Model):
             g_loss, cdann_loss = self.generator_loss(domain_A_images, domain_B_images, result_from_A, result_from_B)
             d_loss = self.discriminator_loss(result_from_A['img_B'], domain_B_images)
         
-            if g_loss > 0.2:
-                g_gradient = generator_tape.gradient(g_loss, self.generator.trainable_variables)
-                self.generator_optimizer.apply_gradients(zip(g_gradient, self.generator.trainable_variables))
+            g_gradient = generator_tape.gradient(g_loss, self.generator.trainable_variables)
+            self.generator_optimizer.apply_gradients(zip(g_gradient, self.generator.trainable_variables))
             
-            if d_loss > 0.35:
+            if d_loss > 0.20:
                 d_gradient = discriminator_tape.gradient(d_loss, self.discriminator.trainable_variables)
                 self.discriminator_optimizer.apply_gradients(zip(d_gradient, self.discriminator.trainable_variables))
-            
-            cdann_gradient = cdann_tape.gradient(cdann_loss, self.cdann.trainable_variables)
-            self.cdann_optimizer.apply_gradients(zip(cdann_gradient, self.cdann.trainable_variables))
+
+            if cdann_loss > 0.20:
+                cdann_gradient = cdann_tape.gradient(cdann_loss, self.cdann.trainable_variables)
+                self.cdann_optimizer.apply_gradients(zip(cdann_gradient, self.cdann.trainable_variables))
 
         with self.train_summary_writer.as_default():
             tf.summary.scalar('generator_loss', self.g_loss_metric.result(), step=self.batch_step)
@@ -184,4 +183,9 @@ class XGAN(tf.keras.Model):
         #tf.keras.backend.clear_session()
 
         return result
+
+    def make_prediction(self, data):
+        result = self.generator(data, Style.B, training=False)
+        #target_domain = self.denoiser(result['img_B'])
+        return result['img_B']
   

@@ -1,5 +1,6 @@
 import tensorflow as tf
 from tensorflow.keras import layers
+from keras_contrib.layers.normalization.instancenormalization import InstanceNormalization
 
 class Discriminator(layers.Layer):
     def __init__(self):
@@ -8,9 +9,9 @@ class Discriminator(layers.Layer):
         self.conv1 = layers.Conv2D(16, (4,4), strides=(2,2), padding='same', activation=tf.keras.layers.LeakyReLU(0.3))
         #self.drop1 = layers.Dropout(0.2)
         self.conv2 = layers.Conv2D(32, (4,4), strides=(2,2), padding='same', activation=tf.keras.layers.LeakyReLU(0.3))
-        self.bnorm2 = layers.BatchNormalization()
+        self.bnorm2 = InstanceNormalization()
         self.conv3 = layers.Conv2D(32, (4,4), strides=(2,2), padding='same', activation=tf.keras.layers.LeakyReLU(0.3))
-        self.bnorm3 = layers.BatchNormalization()
+        self.bnorm3 = InstanceNormalization()
         self.conv4 = layers.Conv2D(32, (4,4), strides=(2,2), padding='same', activation=tf.keras.layers.LeakyReLU(0.3))
         #self.drop4 = layers.Dropout(0.2)
 
